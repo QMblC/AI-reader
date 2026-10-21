@@ -1,0 +1,42 @@
+spring:
+  application:
+    name: ai-reader
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+
+management:
+  endpoints:
+    web:
+      discovery:
+        enabled: false
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+app:
+  rate-limit:
+    # Global budget for this application instance, only for POST /api/v1/analyses.
+    requests-per-minute: ${RATE_LIMIT_REQUESTS_PER_MINUTE:60}
+
+springdoc:
+  show-actuator: true
+  paths-to-match:
+    - /api/v1/analyses
+    - /actuator/health
+  override-with-generic-response: false
+  swagger-ui:
+    path: /swagger-ui.html
+    disable-swagger-default-url: true

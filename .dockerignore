@@ -1,0 +1,14 @@
+target
+.git
+.tools
+.cache
+.tmp
+tmp
+*.tmp
+.idea
+.vscode
+*.pdf
+*.docx
+*.png
+*.log
+.env*
