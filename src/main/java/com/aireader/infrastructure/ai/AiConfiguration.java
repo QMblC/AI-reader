@@ -5,6 +5,7 @@ import com.aireader.application.port.LlmClient;
 import com.aireader.infrastructure.ai.llm.StubLlmClient;
 import com.aireader.infrastructure.ai.prompt.ContextPromptBuilder;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
@@ -14,7 +15,8 @@ import java.nio.charset.StandardCharsets;
 
 @Configuration(proxyBeanMethods = false)
 public class AiConfiguration {
-    @Bean("stubLlmClient")
+    @Bean({"stubLlmClient", "analysisLlmClient"})
+    @ConditionalOnProperty(prefix = "yandex", name = "enabled", havingValue = "false", matchIfMissing = true)
     LlmClient stubLlmClient() {
         return new StubLlmClient();
     }
@@ -27,7 +29,7 @@ public class AiConfiguration {
 
     @Bean
     AiAnalysisModule aiAnalysisModule(ContextPromptBuilder promptBuilder,
-            @Qualifier("stubLlmClient") LlmClient llmClient) {
+            @Qualifier("analysisLlmClient") LlmClient llmClient) {
         return new DefaultAiAnalysisModule(promptBuilder, llmClient);
     }
 }

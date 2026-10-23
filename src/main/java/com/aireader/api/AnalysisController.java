@@ -33,8 +33,8 @@ public class AnalysisController {
     @PostMapping
     @Operation(summary = "Проанализировать выделенную фразу",
             description = "Принимает фразу, окружающий контекст и необязательные сведения о книге. "
-                    + "Перевод и объяснение — на русском. Пока LLM не подключена, любой корректный запрос "
-                    + "возвращает фиксированный пример про 'kick the bucket'. Лимит по умолчанию — "
+                    + "Перевод и объяснение — на русском. При включённом Yandex анализ выполняет модель; "
+                    + "в демонстрационном режиме возвращается фиксированный пример про 'kick the bucket'. Лимит по умолчанию — "
                     + "60 POST-запросов в минуту на экземпляр приложения, общий для всех клиентов.",
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true,
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -49,7 +49,7 @@ public class AnalysisController {
                                     }
                                     """))))
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Анализ выполнен; сейчас ответ-заглушка",
+            @ApiResponse(responseCode = "200", description = "Анализ выполнен",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = AnalysisResponse.class))),
             @ApiResponse(responseCode = "400", description = "Некорректный JSON или ошибка валидации",

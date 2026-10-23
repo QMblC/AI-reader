@@ -2,7 +2,7 @@ package com.aireader.api.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
-@Schema(description = "Перевод и контекстное объяснение на русском. Сейчас возвращается фиксированный пример.")
+@Schema(description = "Перевод и контекстное объяснение на русском.")
 public record AnalysisResponse(
         @Schema(description = "Перевод выделенной фразы",
                 example = "Сыграл в ящик",

@@ -40,3 +40,15 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
     disable-swagger-default-url: true
+
+yandex:
+  # true selects Yandex; false keeps the offline stub and does not require credentials.
+  enabled: ${YANDEX_ENABLED:false}
+  api-key: ${YANDEX_API_KEY:}
+  folder-id: ${YANDEX_FOLDER_ID:}
+  model-name: ${YANDEX_MODEL:yandexgpt-5.1}
+  base-url: ${YANDEX_BASE_URL:https://ai.api.cloud.yandex.net}
+  temperature: ${YANDEX_TEMPERATURE:0.2}
+  max-tokens: ${YANDEX_MAX_TOKENS:1500}
+  connect-timeout: ${YANDEX_CONNECT_TIMEOUT:5s}
+  read-timeout: ${YANDEX_READ_TIMEOUT:60s}

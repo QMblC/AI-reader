@@ -57,9 +57,22 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(LlmUnavailableException.class)
     ProblemDetail llmUnavailable(LlmUnavailableException ex) {
-        LOG.warn("LLM request failed: {}", ex.getClass().getSimpleName());
-        return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE,
+        String code = switch (ex.providerStatus() == null ? 0 : ex.providerStatus()) {
+            case 400 -> "LLM_PROVIDER_BAD_REQUEST";
+            case 401 -> "LLM_AUTHENTICATION_FAILED";
+            case 403 -> "LLM_ACCESS_DENIED";
+            case 404 -> "LLM_PROVIDER_NOT_FOUND";
+            case 429 -> "LLM_PROVIDER_RATE_LIMIT";
+            default -> "LLM_PROVIDER_UNAVAILABLE";
+        };
+        LOG.warn("LLM request failed: code={}, providerStatus={}", code, ex.providerStatus());
+        var problem = ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE,
                 "Analysis provider is temporarily unavailable");
+        problem.setProperty("code", code);
+        if (ex.providerStatus() != null) {
+            problem.setProperty("providerStatus", ex.providerStatus());
+        }
+        return problem;
     }
 
     @ExceptionHandler(Exception.class)
