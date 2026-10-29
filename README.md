@@ -21,7 +21,7 @@ Backend приложения для чтения литературы с пом�
 
 - Swagger после запуска: [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html).
 - Проверка состояния: [http://localhost:8080/actuator/health](http://localhost:8080/actuator/health).
-- [15 готовых JSON-запросов для демонстрации](docs/swagger-demo-cases.md) с ожидаемыми результатами.
+- [Готовый JSON-запрос и ожидаемый ответ заглушки](docs/run-and-test-swagger.md#пример-запроса).
 
 ## Настройки Yandex
 
