@@ -2,6 +2,7 @@ package com.aireader.api.error;
 
 import com.aireader.application.port.LlmUnavailableException;
 import com.aireader.application.port.InvalidLlmResponseException;
+import com.aireader.application.port.IllustrationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -72,6 +73,13 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         if (ex.providerStatus() != null) {
             problem.setProperty("providerStatus", ex.providerStatus());
         }
+        return problem;
+    }
+
+    @ExceptionHandler(IllustrationException.class)
+    ProblemDetail illustrationFailure(IllustrationException ex) {
+        var problem = ProblemDetail.forStatusAndDetail(HttpStatusCode.valueOf(ex.status()), ex.code());
+        problem.setProperty("code", ex.code());
         return problem;
     }
 

@@ -1,4 +1,12 @@
 spring:
+  config:
+    import: optional:file:.env[.properties]
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/aireader}
+    username: ${DATABASE_USERNAME:aireader}
+    password: ${DATABASE_PASSWORD:aireader}
+    hikari:
+      maximum-pool-size: 4
   application:
     name: ai-reader
   jackson:
@@ -28,13 +36,14 @@ management:
 
 app:
   rate-limit:
-    # Global budget for this application instance, only for POST /api/v1/analyses.
+    # Global budget for this instance, for both AI POST endpoints.
     requests-per-minute: ${RATE_LIMIT_REQUESTS_PER_MINUTE:60}
 
 springdoc:
   show-actuator: true
   paths-to-match:
     - /api/v1/analyses
+    - /api/v1/illustrations/**
     - /actuator/health
   override-with-generic-response: false
   swagger-ui:
@@ -52,3 +61,18 @@ yandex:
   max-tokens: ${YANDEX_MAX_TOKENS:1500}
   connect-timeout: ${YANDEX_CONNECT_TIMEOUT:5s}
   read-timeout: ${YANDEX_READ_TIMEOUT:60s}
+
+cache:
+  ttl: ${CACHE_TTL:48h}
+  cleanup-interval: ${CACHE_CLEANUP_INTERVAL:60s}
+
+illustration:
+  enabled: ${ILLUSTRATION_ENABLED:false}
+  api-key: ${YANDEX_API_KEY:}
+  folder-id: ${YANDEX_FOLDER_ID:}
+  base-url: ${YANDEX_BASE_URL:https://ai.api.cloud.yandex.net}
+  model: ${ILLUSTRATION_MODEL:aliceai-image-art-3.0}
+  scene-model: ${ILLUSTRATION_SCENE_MODEL:yandexgpt-lite}
+  directory: ${IMAGE_STORAGE_DIRECTORY:./data/images}
+  timeout: ${ILLUSTRATION_TIMEOUT:120s}
+  max-image-bytes: 10485760

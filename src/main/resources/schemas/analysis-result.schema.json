@@ -1,0 +1,9 @@
+{
+  "type": "object",
+  "properties": {
+    "translation": {"type": "string", "minLength": 1},
+    "explanation": {"type": "string", "minLength": 1}
+  },
+  "required": ["translation", "explanation"],
+  "additionalProperties": false
+}

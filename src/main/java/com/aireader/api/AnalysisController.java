@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestAttribute;
 
 @RestController
 @RequestMapping("/api/v1/analyses")
@@ -35,7 +36,8 @@ public class AnalysisController {
             description = "Принимает фразу, окружающий контекст и необязательные сведения о книге. "
                     + "Перевод и объяснение — на русском. При включённом Yandex анализ выполняет модель; "
                     + "в демонстрационном режиме возвращается фиксированный пример про 'kick the bucket'. Лимит по умолчанию — "
-                    + "60 POST-запросов в минуту на экземпляр приложения, общий для всех клиентов.",
+                    + "60 POST-запросов в минуту на экземпляр приложения, общий для анализа, иллюстраций и всех клиентов. "
+                    + "Повторные запросы с той же сессией используют кэш PostgreSQL на 48 часов.",
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true,
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = AnalysisRequest.class),
@@ -82,9 +84,10 @@ public class AnalysisController {
                     content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                             schema = @Schema(implementation = ProblemDetail.class)))
     })
-    AnalysisResponse analyze(@Valid @RequestBody AnalysisRequest request) {
+    AnalysisResponse analyze(@Valid @RequestBody AnalysisRequest request,
+            @RequestAttribute("readerScope") String scope) {
         var result = analyzeText.analyze(new TextContext(request.book(), request.author(), request.edition(),
-                request.selectedText(), request.context()));
+                request.selectedText(), request.context()), scope);
         return new AnalysisResponse(result.translation(), result.explanation());
     }
 }

@@ -34,7 +34,8 @@ public class AnalysisRateLimitFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         return !"POST".equals(request.getMethod())
-                || !"/api/v1/analyses".equals(request.getServletPath());
+                || !("/api/v1/analyses".equals(request.getServletPath())
+                || "/api/v1/illustrations".equals(request.getServletPath()));
     }
 
     private synchronized long retryAfterSeconds() {

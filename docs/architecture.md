@@ -1,13 +1,13 @@
 # Архитектура заготовки
 
-Приложение следует разделению из `MVP_Backend_Architecture.docx` и приложенной схемы. Это один процесс Spring Boot и один Maven-модуль; границы логических модулей заданы пакетами. Выделять отдельные сервисы или подключать БД для текущего сценария не требуется. Автоматические тесты и тестовые зависимости в проект не включены.
+Приложение следует разделению из `MVP_Backend_Architecture.docx` и приложенной схемы. Это один процесс Spring Boot и один Maven-модуль; границы логических модулей заданы пакетами. Добавлены PostgreSQL для кэша текста и метаданных иллюстраций, локальное файловое хранение и автоматические тесты. Текущие сценарии генерации, TTL, сессии и перехода на S3 описаны в [иллюстрациях и хранении](illustrations.md).
 
 Текущая версия проекта и версия API в Swagger — **1.0**. Префикс `/api/v1` обозначает основную версию API и сохраняется для версии 1.0.
 
 ```text
 POST /api/v1/analyses
     -> API: DTO + Bean Validation
-    -> AnalyzeTextUseCase / AnalyzeTextService
+    -> AnalyzeTextUseCase / AnalyzeTextService (кэш по сессии, PostgreSQL, TTL 48ч)
     -> AiAnalysisModule.analyze(TextContext) — граница части напарника
     -> DefaultAiAnalysisModule
     -> ContextPromptBuilder (системный промпт + TextContext)
@@ -85,7 +85,7 @@ API использует отдельные DTO: изменения трансп
 
 Swagger UI доступен после запуска приложения по адресу `http://localhost:8080/swagger-ui.html`, спецификация OpenAPI — `http://localhost:8080/v3/api-docs`. Интеграция использует `springdoc-openapi-starter-webmvc-ui` версии 2.9.1 для Spring Boot 3. Документация и её статические ресурсы доступны без токена через Spring Security; остальные служебные пути остаются закрыты.
 
-В Swagger отображаются `POST /api/v1/analyses` и `GET /actuator/health`. Для анализа описаны обязательные поля, ограничения длины, примеры и ответы с ошибками. Чтобы отправить запрос, раскройте POST, нажмите **Try it out**, проверьте пример JSON и нажмите **Execute**. Ответ содержит только `translation` и `explanation`. Вызовы из Swagger учитываются в общем лимите анализов.
+В Swagger отображаются анализ, три endpoint иллюстраций и `GET /actuator/health`. Для анализа описаны обязательные поля, ограничения длины, примеры и ответы с ошибками. Чтобы отправить запрос, раскройте POST, нажмите **Try it out**, проверьте пример JSON и нажмите **Execute**. Ответ анализа содержит только `translation` и `explanation`. POST анализа и иллюстраций учитываются в общем лимите запросов.
 
 После изменения зависимостей в IDEA выполните **Reload All Maven Projects**, затем перезапустите `AiReaderApplication`. Отдельный Postman для Swagger не требуется. Описание интеграции: [официальная документация springdoc v2](https://springdoc.org/v2/).
 

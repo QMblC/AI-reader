@@ -4,5 +4,5 @@ import com.aireader.domain.AnalysisResult;
 import com.aireader.domain.TextContext;
 
 public interface AnalyzeTextUseCase {
-    AnalysisResult analyze(TextContext context);
+    AnalysisResult analyze(TextContext context, String scope);
 }
