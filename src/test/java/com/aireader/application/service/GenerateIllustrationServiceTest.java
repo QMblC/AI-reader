@@ -12,6 +12,7 @@ import static org.mockito.Mockito.*;
 
 class GenerateIllustrationServiceTest {
     private final IllustrationRepository repository = mock(IllustrationRepository.class);
+    private final GenerationQuota quota = mock(GenerationQuota.class);
     private final ImageStorage storage = mock(ImageStorage.class);
     private final IllustrationGenerator generator = mock(IllustrationGenerator.class);
     private final Executor executor = mock(Executor.class);
@@ -20,7 +21,7 @@ class GenerateIllustrationServiceTest {
     private final TextContext context = new TextContext("Book", "Author", "", "A castle on a hill.", "A forest nearby.");
     private final IllustrationOptions options = new IllustrationOptions(null, null);
     private final GenerateIllustrationService service = new GenerateIllustrationService(
-            repository, storage, generator, executor, clock, Duration.ofHours(48));
+            repository, quota, storage, generator, executor, clock, Duration.ofHours(48));
 
     @Test void returnsCacheWithoutSchedulingOrCallingProvider() {
         when(generator.fingerprint()).thenReturn("model-v1");
@@ -28,13 +29,13 @@ class GenerateIllustrationServiceTest {
                 "image/png", null, now, now.plusSeconds(100));
         when(repository.findByKey(anyString(), eq(now))).thenReturn(Optional.of(job));
         assertThat(service.generate(context, options, "scope")).isEqualTo(job);
-        verifyNoInteractions(executor, storage);
+        verifyNoInteractions(executor, storage, quota);
         verify(generator, never()).generate(any(), any());
     }
 
     @Test void savesOnlyCompletedImageAndUsesFixedExpiry() throws Exception {
         when(generator.fingerprint()).thenReturn("model-v1");
-        when(repository.claim(any())).thenReturn(true);
+        when(quota.claimIllustration(any())).thenReturn(true);
         when(generator.generate(context, options)).thenReturn(new GeneratedImage(new byte[]{1,2,3}, "image/png"));
         var job = service.generate(context, options, "scope");
         var task = ArgumentCaptor.forClass(Runnable.class);
@@ -48,7 +49,7 @@ class GenerateIllustrationServiceTest {
 
     @Test void failedProviderIsNotPublishedAndFailureExpiresInFiveMinutes() {
         when(generator.fingerprint()).thenReturn("v1");
-        when(repository.claim(any())).thenReturn(true);
+        when(quota.claimIllustration(any())).thenReturn(true);
         when(generator.generate(any(), any())).thenThrow(new IllustrationException("IMAGE_PROVIDER_ACCESS_DENIED", 503));
         var job = service.generate(context, options, "scope");
         var task = ArgumentCaptor.forClass(Runnable.class);
@@ -60,7 +61,7 @@ class GenerateIllustrationServiceTest {
 
     @Test void fullQueueRejectsWithoutCallingPaidProvider() {
         when(generator.fingerprint()).thenReturn("v1");
-        when(repository.claim(any())).thenReturn(true);
+        when(quota.claimIllustration(any())).thenReturn(true);
         doThrow(new RejectedExecutionException()).when(executor).execute(any());
         assertThatThrownBy(() -> service.generate(context, options, "scope"))
                 .isInstanceOfSatisfying(IllustrationException.class, ex -> assertThat(ex.status()).isEqualTo(429));

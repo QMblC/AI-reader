@@ -59,14 +59,14 @@ public class StorageConfiguration {
                 Thread.ofPlatform().name("illustration-", 0).factory(), new ThreadPoolExecutor.AbortPolicy());
     }
 
-    @Bean GenerateIllustrationUseCase generateIllustrationUseCase(IllustrationRepository repository,
+    @Bean GenerateIllustrationUseCase generateIllustrationUseCase(IllustrationRepository repository, GenerationQuota quota,
             ImageStorage storage, IllustrationGenerator generator,
             @Qualifier("illustrationExecutor") ThreadPoolExecutor executor, Clock clock,
             @Value("${cache.ttl}") Duration ttl) {
         if (ttl.isNegative() || ttl.isZero() || ttl.compareTo(Duration.ofHours(48)) > 0) {
             throw new IllegalArgumentException("Cache TTL must be positive and at most 48 hours");
         }
-        return new GenerateIllustrationService(repository, storage, generator, executor, clock, ttl);
+        return new GenerateIllustrationService(repository, quota, storage, generator, executor, clock, ttl);
     }
 
     @Bean CacheMaintenance cacheMaintenance(AnalysisCache analyses, IllustrationRepository illustrations,

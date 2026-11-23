@@ -3,6 +3,7 @@ package com.aireader.api.error;
 import com.aireader.application.port.LlmUnavailableException;
 import com.aireader.application.port.InvalidLlmResponseException;
 import com.aireader.application.port.IllustrationException;
+import com.aireader.application.port.RequestQuotaExceededException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -81,6 +82,14 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         var problem = ProblemDetail.forStatusAndDetail(HttpStatusCode.valueOf(ex.status()), ex.code());
         problem.setProperty("code", ex.code());
         return problem;
+    }
+
+    @ExceptionHandler(RequestQuotaExceededException.class)
+    ResponseEntity<ProblemDetail> quotaExceeded(RequestQuotaExceededException ex) {
+        var problem = ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, "Request quota exceeded");
+        problem.setProperty("code", ex.code());
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, Long.toString(ex.retryAfterSeconds())).body(problem);
     }
 
     @ExceptionHandler(Exception.class)

@@ -15,11 +15,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.RequestAttribute;
 
 @RestController
 @RequestMapping("/api/v1/analyses")
@@ -37,7 +37,7 @@ public class AnalysisController {
                     + "Перевод и объяснение — на русском. При включённом Yandex анализ выполняет модель; "
                     + "в демонстрационном режиме возвращается фиксированный пример про 'kick the bucket'. Лимит по умолчанию — "
                     + "60 POST-запросов в минуту на экземпляр приложения, общий для анализа, иллюстраций и всех клиентов. "
-                    + "Повторные запросы с той же сессией используют кэш PostgreSQL на 48 часов.",
+                    + "Дневные квоты применяются к новым генерациям. Повтор с той же сессией использует кэш PostgreSQL до 48 часов.",
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true,
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = AnalysisRequest.class),
@@ -60,7 +60,7 @@ public class AnalysisController {
             @ApiResponse(responseCode = "415", description = "Требуется тело запроса в формате JSON",
                     content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                             schema = @Schema(implementation = ProblemDetail.class))),
-            @ApiResponse(responseCode = "429", description = "Превышен общий лимит запросов анализа",
+            @ApiResponse(responseCode = "429", description = "Исчерпана квота генераций или превышен лимит запросов",
                     headers = @Header(name = "Retry-After", description = "Секунды до следующей попытки",
                             schema = @Schema(type = "integer", minimum = "1")),
                     content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
@@ -85,7 +85,7 @@ public class AnalysisController {
                             schema = @Schema(implementation = ProblemDetail.class)))
     })
     AnalysisResponse analyze(@Valid @RequestBody AnalysisRequest request,
-            @RequestAttribute("readerScope") String scope) {
+            @AuthenticationPrincipal String scope) {
         var result = analyzeText.analyze(new TextContext(request.book(), request.author(), request.edition(),
                 request.selectedText(), request.context()), scope);
         return new AnalysisResponse(result.translation(), result.explanation());

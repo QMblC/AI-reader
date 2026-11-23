@@ -5,25 +5,27 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.stereotype.Component;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Map;
 
 /** Bounded memory, instance-wide fixed window; health requests are never limited. */
-@Component
-public class AnalysisRateLimitFilter extends OncePerRequestFilter {
+final class AnalysisRateLimitFilter extends OncePerRequestFilter {
+    private static final RequestMatcher AI_WRITES = new OrRequestMatcher(
+            PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.POST, "/api/v1/analyses"),
+            PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.POST, "/api/v1/illustrations"));
+    private static final long WINDOW_NANOS = 60_000_000_000L;
     private final ObjectMapper mapper;
     private final int limit;
     private long windowStart = System.nanoTime();
     private int used;
-    private static final long WINDOW_NANOS = 60_000_000_000L;
-
-    public AnalysisRateLimitFilter(ObjectMapper mapper,
-            @Value("${app.rate-limit.requests-per-minute}") int limit) {
+    AnalysisRateLimitFilter(ObjectMapper mapper, int limit) {
         if (limit < 1) {
             throw new IllegalArgumentException("Rate limit must be positive");
         }
@@ -33,9 +35,7 @@ public class AnalysisRateLimitFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !"POST".equals(request.getMethod())
-                || !("/api/v1/analyses".equals(request.getServletPath())
-                || "/api/v1/illustrations".equals(request.getServletPath()));
+        return !AI_WRITES.matches(request);
     }
 
     private synchronized long retryAfterSeconds() {
@@ -65,6 +65,6 @@ public class AnalysisRateLimitFilter extends OncePerRequestFilter {
         response.setHeader("Retry-After", Long.toString(retryAfter));
         response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
         mapper.writeValue(response.getOutputStream(), Map.of("type", "about:blank", "title", "Too Many Requests",
-                "status", 429, "detail", "Analysis request limit exceeded"));
+                "status", 429, "detail", "Generation request limit exceeded", "code", "REQUEST_RATE_LIMIT"));
     }
 }

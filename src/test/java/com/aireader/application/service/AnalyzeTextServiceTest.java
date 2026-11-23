@@ -8,6 +8,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 class AnalyzeTextServiceTest {
     @Test void concurrentRequestsShareResultButAnotherSessionGeneratesSeparately() throws Exception {
@@ -19,8 +20,9 @@ class AnalyzeTextServiceTest {
             public void deleteExpired(Instant now) { }
         };
         var result = new AnalysisResult("Замок", "Описание замка");
+        var quota = mock(GenerationQuota.class);
         var service = new AnalyzeTextService(context -> { calls.incrementAndGet(); return "result"; },
-                json -> result, cache, Clock.systemUTC(), Duration.ofHours(48), "model+prompt");
+                json -> result, cache, quota, Clock.systemUTC(), Duration.ofHours(48), "model+prompt");
         var context = new TextContext("", "", "", "castle", "An old castle.");
         try (var executor = Executors.newFixedThreadPool(8)) {
             var tasks = java.util.stream.IntStream.range(0, 20)
@@ -30,5 +32,7 @@ class AnalyzeTextServiceTest {
         assertThat(calls.get()).isEqualTo(1);
         service.analyze(context, "session-b");
         assertThat(calls.get()).isEqualTo(2);
+        verify(quota).reserveAnalysis("session-a");
+        verify(quota).reserveAnalysis("session-b");
     }
 }

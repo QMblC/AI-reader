@@ -1,6 +1,6 @@
 # Запуск AI-reader и проверка через Swagger
 
-AI-reader — backend на Java 21 и Spring Boot. Для первого запуска используйте локальную заглушку: API работает без ключей и обращения к модели. Для перевода произвольного текста включите Yandex.
+AI-reader — backend на Java 21 и Spring Boot. Для первого запуска используйте локальную заглушку анализа, которая работает без ключа Yandex и обращения к модели. Мобильное API требует токен App Check и гостевую сессию. Для перевода произвольного текста включите Yandex.
 
 ## Требования
 
@@ -8,6 +8,7 @@ AI-reader — backend на Java 21 и Spring Boot. Для первого зап�
 - Доступ в интернет при первой сборке для загрузки Maven и зависимостей.
 - Свободный порт 8080 (или другой порт через `SERVER_PORT`).
 - Docker нужен только для варианта запуска в контейнере.
+- Настроенные `APP_CHECK_PROJECT_NUMBER` и `APP_CHECK_ALLOWED_APP_IDS`. Для ручного вызова мобильных маршрутов получите App Check токен от тестовой сборки. [Настройка тестового окружения](mobile-guest-integration.md#настройка-тестового-бэкенда)
 
 Отдельно устанавливать Maven не требуется: в проекте есть Maven Wrapper (`mvnw` и `mvnw.cmd`). Для кэша требуется PostgreSQL: `docker compose up -d postgres` или собственная локальная БД. Настройки подключения и иллюстраций — в [illustrations.md](illustrations.md).
 
@@ -59,9 +60,9 @@ Health подтверждает работу приложения. Он не п�
 ## Пример запроса
 
 1. Откройте [Swagger UI](http://localhost:8080/swagger-ui/index.html).
-2. Разверните `POST /api/v1/analyses` и нажмите **Try it out**.
-3. Вставьте JSON ниже в тело запроса и нажмите **Execute**.
-4. Проверьте HTTP-код и **Response body**.
+2. Нажмите **Authorize** и введите токен в `appCheck`. Через **Try it out** выполните `POST /api/v1/guest-sessions` и получите `accessToken`.
+3. Введите выданный `accessToken` в `guestToken` через **Authorize**.
+4. Разверните `POST /api/v1/analyses` и нажмите **Try it out**. Вставьте JSON ниже, нажмите **Execute** и проверьте HTTP-код и **Response body**.
 
 ```json
 {
@@ -92,7 +93,10 @@ $body = @{
     selectedText = 'He kicked the bucket'
     context = 'After a long illness, he finally kicked the bucket.'
 } | ConvertTo-Json
-Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/v1/analyses -ContentType 'application/json; charset=utf-8' -Body ([System.Text.Encoding]::UTF8.GetBytes($body))
+$headers = @{ 'X-Firebase-AppCheck' = '<токен App Check из тестовой сборки>' }
+$guest = Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/v1/guest-sessions -Headers $headers
+$headers.Authorization = "Bearer $($guest.accessToken)"
+Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/v1/analyses -Headers $headers -ContentType 'application/json; charset=utf-8' -Body ([System.Text.Encoding]::UTF8.GetBytes($body))
 ```
 
 Обязательные поля: `selectedText` (непустая строка, до 2000 символов) и `context` (непустая строка, до 12000 символов). `book`, `author`, `edition` необязательны; максимальная длина — 500, 300 и 300 символов соответственно. Неизвестные поля JSON отклоняются.
@@ -156,7 +160,7 @@ java -jar target/ai-reader.jar
 
 ```powershell
 docker build -t ai-reader:local .
-docker run --rm --name ai-reader -p 127.0.0.1:8080:8080 -e YANDEX_ENABLED=false ai-reader:local
+docker run --rm --name ai-reader -p 127.0.0.1:8080:8080 --env-file .env -e YANDEX_ENABLED=false ai-reader:local
 ```
 
 Сборка образа включает Maven и тесты; Java на компьютере для этого варианта не нужна. Для запуска с моделью подготовьте локальный `.env` с `YANDEX_ENABLED=true`, `YANDEX_API_KEY`, `YANDEX_FOLDER_ID` и при необходимости `YANDEX_MODEL`, по одной записи `ИМЯ=значение` на строку. Затем используйте вместо предыдущей команды запуска:

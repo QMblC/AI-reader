@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import java.net.URI;
 import java.util.UUID;
@@ -26,9 +27,9 @@ public class IllustrationController {
     @PostMapping
     @Operation(summary = "Создать иллюстрацию или получить существующее задание",
             description = "202 — опрашивайте Location; 200 — готовый или ошибочный результат. "
-                    + "Сохраняйте cookie или передавайте X-Reader-Session из ответа во всех последующих запросах.")
+                    + "Используйте ту же гостевую сессию при опросе статуса и загрузке файла.")
     ResponseEntity<IllustrationResponse> generate(@Valid @RequestBody IllustrationRequest request,
-            @RequestAttribute("readerScope") String scope) {
+            @AuthenticationPrincipal String scope) {
         if (!enabled) throw new IllustrationException("ILLUSTRATION_DISABLED", 503);
         var job = illustrations.generate(new TextContext(request.book(), request.author(), request.edition(),
                 request.selectedText(), request.context()), new IllustrationOptions(request.style(), request.size()), scope);
@@ -36,12 +37,12 @@ public class IllustrationController {
     }
     @GetMapping("/{id}")
     @Operation(summary = "Получить статус генерации")
-    ResponseEntity<IllustrationResponse> status(@PathVariable UUID id, @RequestAttribute("readerScope") String scope) {
+    ResponseEntity<IllustrationResponse> status(@PathVariable UUID id, @AuthenticationPrincipal String scope) {
         return response(illustrations.get(id, scope));
     }
     @GetMapping("/{id}/image")
     @Operation(summary = "Получить готовое изображение")
-    ResponseEntity<byte[]> image(@PathVariable UUID id, @RequestAttribute("readerScope") String scope) {
+    ResponseEntity<byte[]> image(@PathVariable UUID id, @AuthenticationPrincipal String scope) {
         var image = illustrations.image(id, scope);
         return ResponseEntity.ok().contentType(MediaType.parseMediaType(image.contentType()))
                 .header("Content-Disposition", "inline; filename=\"illustration-" + id

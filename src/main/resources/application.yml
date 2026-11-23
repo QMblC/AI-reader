@@ -35,6 +35,17 @@ management:
       show-details: never
 
 app:
+  mobile-access:
+    firebase-project-number: ${APP_CHECK_PROJECT_NUMBER:}
+    firebase-app-ids: ${APP_CHECK_ALLOWED_APP_IDS:}
+    access-ttl: ${GUEST_ACCESS_TTL:30m}
+    session-ttl: ${GUEST_SESSION_TTL:30d}
+    session-creations-per-minute: ${GUEST_SESSION_CREATIONS_PER_MINUTE:30}
+    session-refreshes-per-minute: ${GUEST_SESSION_REFRESHES_PER_MINUTE:10}
+    guest-analyses-per-day: ${GUEST_ANALYSES_PER_DAY:20}
+    guest-illustrations-per-day: ${GUEST_ILLUSTRATIONS_PER_DAY:3}
+    total-analyses-per-day: ${TOTAL_ANALYSES_PER_DAY:200}
+    total-illustrations-per-day: ${TOTAL_ILLUSTRATIONS_PER_DAY:30}
   rate-limit:
     # Global budget for this instance, for both AI POST endpoints.
     requests-per-minute: ${RATE_LIMIT_REQUESTS_PER_MINUTE:60}
@@ -42,6 +53,7 @@ app:
 springdoc:
   show-actuator: true
   paths-to-match:
+    - /api/v1/guest-sessions/**
     - /api/v1/analyses
     - /api/v1/illustrations/**
     - /actuator/health

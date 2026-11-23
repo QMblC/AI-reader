@@ -11,15 +11,17 @@ import java.util.concurrent.RejectedExecutionException;
 
 public final class GenerateIllustrationService implements GenerateIllustrationUseCase {
     private final IllustrationRepository repository;
+    private final GenerationQuota quota;
     private final ImageStorage storage;
     private final IllustrationGenerator generator;
     private final Executor executor;
     private final Clock clock;
     private final Duration ttl;
 
-    public GenerateIllustrationService(IllustrationRepository repository, ImageStorage storage,
+    public GenerateIllustrationService(IllustrationRepository repository, GenerationQuota quota, ImageStorage storage,
             IllustrationGenerator generator, Executor executor, Clock clock, Duration ttl) {
         this.repository = repository;
+        this.quota = quota;
         this.storage = storage;
         this.generator = generator;
         this.executor = executor;
@@ -36,7 +38,7 @@ public final class GenerateIllustrationService implements GenerateIllustrationUs
         var now = clock.instant();
         var job = new Illustration(UUID.randomUUID(), key, scope, Illustration.Status.QUEUED,
                 null, null, now, now.plus(ttl));
-        if (!repository.claim(job)) {
+        if (!quota.claimIllustration(job)) {
             return repository.findByKey(key, clock.instant())
                     .orElseThrow(() -> new IllustrationException("ILLUSTRATION_BUSY", 429));
         }
