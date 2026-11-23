@@ -2,6 +2,7 @@ package com.aireader.infrastructure.security;
 
 import com.aireader.application.port.IllustrationGenerator;
 import com.aireader.domain.GeneratedImage;
+import com.aireader.infrastructure.web.ApiRequestLoggingFilter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEObjectType;
@@ -120,6 +121,11 @@ class MobileAccessIntegrationTest {
         String appCheck = validAppCheck();
         JsonNode guest = guest(appCheck);
         String access = guest.path("accessToken").asText();
+        var invalid = send(jsonPost(ANALYSES, "{\"selectedText\":,\"context\":\"old castle\"}"), appCheck, access)
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_JSON")).andReturn();
+        String requestId = invalid.getResponse().getHeader(ApiRequestLoggingFilter.REQUEST_ID_HEADER);
+        assertThat(requestId).isNotBlank();
+        assertThat(mapper.readTree(invalid.getResponse().getContentAsByteArray()).path("requestId").asText()).isEqualTo(requestId);
         send(jsonPost(ANALYSES, REQUEST), appCheck, access).andExpect(status().isOk());
 
         jdbc.update("UPDATE guest_access_tokens SET expires_at = ?", java.sql.Timestamp.from(NOW.minusSeconds(1)));

@@ -12,6 +12,7 @@ spring:
   jackson:
     deserialization:
       fail-on-unknown-properties: true
+      fail-on-trailing-tokens: true
   autoconfigure:
     exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
 

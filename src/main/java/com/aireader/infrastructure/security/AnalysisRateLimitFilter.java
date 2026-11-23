@@ -1,5 +1,6 @@
 package com.aireader.infrastructure.security;
 
+import com.aireader.infrastructure.web.ApiRequestLoggingFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -62,6 +63,7 @@ final class AnalysisRateLimitFilter extends OncePerRequestFilter {
             return;
         }
         response.setStatus(429);
+        ApiRequestLoggingFilter.recordFailure(request, "REQUEST_RATE_LIMIT");
         response.setHeader("Retry-After", Long.toString(retryAfter));
         response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
         mapper.writeValue(response.getOutputStream(), Map.of("type", "about:blank", "title", "Too Many Requests",

@@ -1,5 +1,6 @@
 package com.aireader.infrastructure.security;
 
+import com.aireader.infrastructure.web.ApiRequestLoggingFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -50,17 +51,17 @@ final class MobileAccessFilter extends OncePerRequestFilter {
         response.setHeader(HttpHeaders.CACHE_CONTROL, "no-store");
         String token = request.getHeader(APP_CHECK_HEADER);
         if (token == null || token.isBlank() || token.length() > 4096) {
-            problem(response, HttpStatus.UNAUTHORIZED, "APP_CHECK_REQUIRED", "A valid App Check token is required");
+            problem(request, response, HttpStatus.UNAUTHORIZED, "APP_CHECK_REQUIRED", "A valid App Check token is required");
             return;
         }
         String appId;
         try {
             appId = appCheck.verify(token);
         } catch (BadJwtException ex) {
-            problem(response, HttpStatus.UNAUTHORIZED, "APP_CHECK_INVALID", "The App Check token is invalid or expired");
+            problem(request, response, HttpStatus.UNAUTHORIZED, "APP_CHECK_INVALID", "The App Check token is invalid or expired");
             return;
         } catch (JwtException ex) {
-            problem(response, HttpStatus.SERVICE_UNAVAILABLE, "APP_CHECK_UNAVAILABLE", "App Check verification is temporarily unavailable");
+            problem(request, response, HttpStatus.SERVICE_UNAVAILABLE, "APP_CHECK_UNAVAILABLE", "App Check verification is temporarily unavailable");
             return;
         }
 
@@ -70,7 +71,7 @@ final class MobileAccessFilter extends OncePerRequestFilter {
             var scope = sessions.authenticate(appId, request.getHeader(HttpHeaders.AUTHORIZATION));
             if (scope.isEmpty()) {
                 response.setHeader(HttpHeaders.WWW_AUTHENTICATE, "Bearer");
-                problem(response, HttpStatus.UNAUTHORIZED, "GUEST_ACCESS_INVALID", "A valid guest access token is required");
+                problem(request, response, HttpStatus.UNAUTHORIZED, "GUEST_ACCESS_INVALID", "A valid guest access token is required");
                 return;
             }
             var principal = UsernamePasswordAuthenticationToken.authenticated(scope.get(), null, List.of());
@@ -81,7 +82,9 @@ final class MobileAccessFilter extends OncePerRequestFilter {
         chain.doFilter(request, response);
     }
 
-    private void problem(HttpServletResponse response, HttpStatus status, String code, String detail) throws IOException {
+    private void problem(HttpServletRequest request, HttpServletResponse response, HttpStatus status, String code, String detail)
+            throws IOException {
+        ApiRequestLoggingFilter.recordFailure(request, code);
         response.setStatus(status.value());
         response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
         mapper.writeValue(response.getOutputStream(), Map.of("type", "about:blank", "title", status.getReasonPhrase(),

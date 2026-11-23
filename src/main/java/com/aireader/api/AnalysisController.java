@@ -54,7 +54,8 @@ public class AnalysisController {
             @ApiResponse(responseCode = "200", description = "Анализ выполнен",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = AnalysisResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Некорректный JSON или ошибка валидации",
+            @ApiResponse(responseCode = "400", description = "INVALID_JSON с причиной, строкой и колонкой, если они известны. "
+                    + "VALIDATION_FAILED содержит список полей. Для поиска в логах используйте X-Request-Id.",
                     content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                             schema = @Schema(implementation = ProblemDetail.class))),
             @ApiResponse(responseCode = "415", description = "Требуется тело запроса в формате JSON",

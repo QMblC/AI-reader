@@ -39,14 +39,17 @@ class PostgresCacheIntegrationTest {
         var repository = new PostgresIllustrationRepository(jdbc);
         String key = UUID.randomUUID().toString();
         var now = Instant.now();
-        var job = new Illustration(UUID.randomUUID(), key, "session-a", Illustration.Status.QUEUED,
-                null, null, now, now.plusSeconds(60));
         try (var executor = Executors.newFixedThreadPool(8)) {
-            var tasks = java.util.stream.IntStream.range(0, 12).mapToObj(i -> (Callable<Boolean>) () -> repository.claim(job)).toList();
+            var tasks = java.util.stream.IntStream.range(0, 12).mapToObj(i -> (Callable<Boolean>) () -> {
+                var candidate = new Illustration(UUID.randomUUID(), key, "session-a", Illustration.Status.QUEUED,
+                        null, null, now, now.plusSeconds(60));
+                return repository.claim(candidate);
+            }).toList();
             int claims = 0;
             for (var future : executor.invokeAll(tasks)) if (future.get()) claims++;
             assertThat(claims).isEqualTo(1);
         }
+        var job = repository.findByKey(key, now).orElseThrow();
         assertThat(repository.find(job.id(), "session-b", now)).isEmpty();
         repository.ready(job.id(), "image/png");
         assertThat(repository.find(job.id(), "session-a", now).orElseThrow().status()).isEqualTo(Illustration.Status.READY);

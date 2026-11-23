@@ -1,6 +1,7 @@
 package com.aireader.api;
 
 import com.aireader.infrastructure.security.GuestSessions;
+import com.aireader.infrastructure.web.ApiRequestLoggingFilter;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.WebRequest;
 
 @RestController
 @RequestMapping("/api/v1/guest-sessions")
@@ -32,13 +34,14 @@ class GuestSessionController {
     @PostMapping("/refresh")
     @Operation(summary = "Обновить токен доступа", description = "Для этого запроса передайте refreshToken как Bearer-токен.")
     ResponseEntity<?> refresh(@RequestAttribute String verifiedAppId,
-            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String authorization) {
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String authorization, WebRequest request) {
         var access = sessions.refresh(verifiedAppId, authorization);
         if (access.isPresent()) {
             return ResponseEntity.ok(access.get());
         }
         var problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, "A valid guest refresh token is required");
         problem.setProperty("code", "GUEST_REFRESH_INVALID");
-        return ResponseEntity.of(problem).header(HttpHeaders.WWW_AUTHENTICATE, "Bearer").build();
+        return ResponseEntity.of(ApiRequestLoggingFilter.recordProblem(request, problem))
+                .header(HttpHeaders.WWW_AUTHENTICATE, "Bearer").build();
     }
 }

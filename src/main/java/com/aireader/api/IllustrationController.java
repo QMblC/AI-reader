@@ -27,7 +27,8 @@ public class IllustrationController {
     @PostMapping
     @Operation(summary = "Создать иллюстрацию или получить существующее задание",
             description = "202 — опрашивайте Location; 200 — готовый или ошибочный результат. "
-                    + "Используйте ту же гостевую сессию при опросе статуса и загрузке файла.")
+                    + "Используйте ту же гостевую сессию при опросе статуса и загрузке файла. "
+                    + "HTTP 400 возвращает INVALID_JSON с причиной и позицией или VALIDATION_FAILED со списком полей.")
     ResponseEntity<IllustrationResponse> generate(@Valid @RequestBody IllustrationRequest request,
             @AuthenticationPrincipal String scope) {
         if (!enabled) throw new IllustrationException("ILLUSTRATION_DISABLED", 503);
